@@ -10,7 +10,7 @@ def CallAI(text):
   from bardapi import Bard
   global pickP
 
-  token = 'ZAiTpltElJLkOY7lg0AYMlSW_WdKJFIm-FGoNzsIard-oPkHgTUTH3HOCXYcuH65_RgUvw.'
+  token = 'add token here.'
   bard = Bard(token=token)
 
   if pickP == 1:
