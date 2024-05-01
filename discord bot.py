@@ -1,18 +1,20 @@
 import discord
 from discord.ext import commands
+from credentials import *
+
+# define bot token in credentials file
 
 global pickP
 pickP = 0
 
-
 # define function to call AI
 def CallAI(text):
-  from bardapi import Bard
+  from gemini import Gemini
   global pickP
 
-  token = 'add token here.'
-  bard = Bard(token=token)
+  gemini = Gemini(auto_cookies=False, cookies=geminiCookie)
 
+  # Define the personality based on the number
   if pickP == 1:
     personality = "You are now a discord bot and you only respond in sarcastic tones. Respond like this to the text beyond the ':'. DO not say anything else except for the response to the text beyond the :. After you respond, put 'START' and after you finish that part of the response put 'END': "
   elif pickP == 2:
@@ -24,7 +26,8 @@ def CallAI(text):
   else:
     personality = ""
 
-  response = bard.get_answer(personality + text)['content']
+  response = gemini.generate_content(personality + text)
+  response = str(response.payload['candidates'][0]['text'])
 
   # Find the starting and ending positions of the desired data
   start_pos = response.find("START")
@@ -38,8 +41,8 @@ def CallAI(text):
 
 #BOT STARTS HERE
 
-# Replace 'YOUR_BOT_TOKEN' with your actual bot token
-BOT_TOKEN = 'MTEzMzQyMjM2MTcxNTE1OTA5MA.G83l-g.Ts2gBIqwRK5B_5LVaIsWaYLsLjoEM9ji805eaI'
+# Replace 'bot_token' with your actual bot token
+BOT_TOKEN = bot_token
 
 # Define the intents your bot requires.
 intents = discord.Intents.default()
@@ -65,9 +68,10 @@ async def on_message(message):
   # Don't respond to the bot's own messages
   if message.author == bot.user:
     return
+  
+  print("Message Recieved:"+message.content)
 
   #CHANGE PERSONALITY
-  print(message.content)
   if bot.user.mentioned_in(message) and message.content.startswith(
       f'<@{bot.user.id}> personality'):
     print("Event fired: change personality")
@@ -101,7 +105,7 @@ async def on_message(message):
     content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
     content = content.split(None, 1)[1]
 
-    print(content)
+    #print(content)
 
     response = CallAI(content)
 
