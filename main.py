@@ -3,18 +3,43 @@ from discord.ext import commands
 from credentials import *
 
 # define bot token in credentials file
-
 global pickP
 pickP = 0
 
-def parseMessage(message):
-  # Extract the word after the mention in the message content
-  content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
-  content = content.split(None, 1)[1]
-  return content
+# HELPER FUNCTIONS---------------------------------------------
+
+# define function to play music from local file
+async def play_local_file(name, message):
+  import os
+  # Get the list of files in the music directory
+  music_dir = "C:/Users/cgrab/Music/Others"  # Replace with the actual path to your music directory
+  files = os.listdir(music_dir)
+
+  # Search for the file based on the given name
+  for file in files:
+    if name.lower() in file.lower():
+      print("Playing file:", file)
+      await message.channel.send(f"Playing {file}...")
+      # Play the file using FFmpegPCMAudio
+      voice_channel = message.author.voice.channel
+      voice_client = await voice_channel.connect()
+      source = discord.FFmpegPCMAudio(os.path.join(music_dir, file))
+      voice_client.play(source)
+      return # Exit the function if the file is found
+  # If no matching file is found
+  await message.channel.send("File not found.")
+
+# Define a function to quit the current voice channel
+async def quit_voice_channel(bot):
+  voice_client = discord.utils.get(bot.guild.voice_clients, guild=bot.guild)
+  if voice_client:
+    await voice_client.disconnect()
+    await bot.channel.send("Left the voice channel.")
+  else:
+    await bot.channel.send("Not currently in a voice channel.")
 
 # define function to call AI
-def CallAI(text):
+async def CallAI(text):
   from gemini import Gemini
   global pickP
 
@@ -48,7 +73,7 @@ def CallAI(text):
   return (desired_data)
 
 
-#BOT STARTS HERE
+#BOT STARTS HERE---------------------------------------------
 
 # Replace 'bot_token' with your actual bot token
 BOT_TOKEN = bot_token
@@ -59,7 +84,6 @@ intents.members = True  # This allows the bot to receive member-related events, 
 
 # Create a bot instance with a command prefix (e.g., '!bot ')
 bot = commands.Bot(command_prefix='!bot ', intents=intents)
-
 
 # Event: Bot is ready and connected to Discord.
 @bot.event
@@ -84,9 +108,38 @@ async def on_message(message):
   if bot.user.mentioned_in(message) and message.content.startswith(
       f'<@{bot.user.id}> help'):
     print("Event fired: help")
-    response = "Hello! I am a Discord bot that can respond to messages using AI. To get started, mention me in a message and I will respond to you. You can also change my personality by using the command '@bot personality <number>'."
+    response = "Hello! I am a Discord bot that can respond to messages using AI. To get started, mention me in a message and I will respond to you. You can also change my personality by using the command '@bot personality <number>'. To message a user, use the command '@bot message <username> <message>'."
     await message.channel.send(response)
-    
+  
+  #ECHO---------------------------------------------
+  elif bot.user.mentioned_in(message) and message.content.startswith(
+      f'<@{bot.user.id}> echo'):
+    # Extract the word after the mention in the message content
+    content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
+    content = message.clean_content.replace(f'echo', '').strip()
+    content = content.split(None, 1)[1]
+    await message.channel.send(content)
+  # END OF METHOD ----------------
+  
+  #PLAY MUSIC FROM LOCAL FILE---------------------------------------------
+  elif bot.user.mentioned_in(message) and message.content.startswith(
+      f'<@{bot.user.id}> play'):
+    print("Event fired: play music")
+    # Extract the word after the mention in the message content
+    content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
+    content = message.clean_content.replace(f'play', '').strip()
+    content = content.split(None, 1)[1]
+    await play_local_file(content, message)
+  # END OF METHOD ----------------
+  
+  #STOP PLAYING MUSIC---------------------------------------------
+  elif bot.user.mentioned_in(message) and message.content.startswith(
+      f'<@{bot.user.id}> stop'):
+    print("Event fired: stop playing music")
+    await quit_voice_channel(bot)
+    await message.channel.send("Stopped playing music.")
+  # END OF METHOD ----------------
+  
   #MESSAGE A USER---------------------------------------------
   elif bot.user.mentioned_in(message) and message.content.startswith(
       f'<@{bot.user.id}> message'):
@@ -144,15 +197,17 @@ async def on_message(message):
     content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
     content = content.split(None, 1)[1]
 
-    #print(content)
-
-    response = CallAI(content)
+    ## Call the AI to get the response
+    try: 
+      response = CallAI(content)
+    except:
+      response = "AI is not avaliable. Please try again."
 
     await message.channel.send(response)
-  else:
-    await bot.process_commands(message)
   # END OF METHOD -------------------
-
+  
+  # Process bot commands (helps to avoid conflicts with other commands)
+  await bot.process_commands(message)
 
 # Run the bot with the specified token.
 bot.run(BOT_TOKEN)
