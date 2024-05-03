@@ -1,2 +1,4 @@
 discord
 pynacl
+pyttsx3
+asyncio

@@ -11,8 +11,23 @@ from credentials import *
 # define bot token in credentials file
 global pickP
 pickP = 0
+global queue
+queue = []
 
 # HELPER FUNCTIONS---------------------------------------------
+
+# define function to queue music
+async def queueMusic(name, message):
+  import os
+  files = os.listdir(music_dir)
+  # Check if the file exists in the music directory
+  for file in files:
+    if name.lower() in file.lower():
+      # Add the name to the queue
+      queue.append(file)
+      await message.channel.send(f"{file} added to the queue.")
+      return
+  await message.channel.send("File not found.")
 
 # define function to play music from local file
 async def play_local_file(name, message):
@@ -20,19 +35,61 @@ async def play_local_file(name, message):
   # Get the list of files in the music directory
   files = os.listdir(music_dir)
 
-  # Search for the file based on the given name
-  for file in files:
-    if name.lower() in file.lower():
-      print("Playing file:", file)
-      await message.channel.send(f"Playing {file}...")
-      # Play the file using FFmpegPCMAudio
-      voice_channel = message.author.voice.channel
-      voice_client = await voice_channel.connect()
-      source = discord.FFmpegPCMAudio(os.path.join(music_dir, file))
-      voice_client.play(source)
-      return # Exit the function if the file is found
-  # If no matching file is found
-  await message.channel.send("File not found.")
+  # Check if "queue" is in the message content
+  if "queue" in message.content:
+    # Check if the queue is empty
+    global queue
+    if queue.count == 0:
+      await message.channel.send("Queue is empty.")
+    else:
+      # Play files from the queue in order
+      for file in queue:
+        print("Playing file:", file)
+        await message.channel.send(f"Playing {file}...")
+        # Check if the bot is already connected to a voice channel
+        if bot.voice_clients:
+          voice_client = bot.voice_clients[0]
+        else:
+          # Connect to the voice channel
+          voice_channel = message.author.voice.channel
+          voice_client = await voice_channel.connect()
+        
+        # Check if audio is already playing
+        if voice_client.is_playing():
+          # Stop the current audio
+          voice_client.stop()
+        
+        # Play the file using FFmpegPCMAudio
+        source = discord.FFmpegPCMAudio(os.path.join(music_dir, file))
+        voice_client.play(source)
+      
+      # Reset the queue
+      queue = []
+  else:
+    # Search for the file based on the given name
+    for file in files:
+      if name.lower() in file.lower():
+        print("Playing file:", file)
+        await message.channel.send(f"Playing {file}...")
+        # Check if the bot is already connected to a voice channel
+        if bot.voice_clients:
+          voice_client = bot.voice_clients[0]
+        else:
+          # Connect to the voice channel
+          voice_channel = message.author.voice.channel
+          voice_client = await voice_channel.connect()
+        
+        # Check if audio is already playing
+        if voice_client.is_playing():
+          # Stop the current audio
+          voice_client.stop()
+        
+        # Play the file using FFmpegPCMAudio
+        source = discord.FFmpegPCMAudio(os.path.join(music_dir, file))
+        voice_client.play(source)
+        return  # Exit the function if the file is found
+    # If no matching file is found
+    await message.channel.send("File not found.")
 
 # Define a function to quit the current voice channel
 async def quit_voice_channel(bot):
@@ -64,6 +121,7 @@ async def CallAI(text):
 
   response = gemini.generate_content(personality + text)
   response = str(response.payload['candidates'][0]['text'])
+  print(response)
 
   # Find the starting and ending positions of the desired data
   start_pos = response.find("START")
@@ -168,6 +226,103 @@ async def on_message(message):
     await quit_voice_channel(bot)
     await message.channel.send("Bot has left.")
   # END OF METHOD ----------------
+  
+  #QUEUE MUSIC---------------------------------------------
+  elif bot.user.mentioned_in(message) and message.content.startswith(
+      f'<@{bot.user.id}> queue'):
+    print("Event fired: queue music")
+    print(bot.user.id, bot.user.mention, bot.user.name, message.content)
+    content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
+    content = message.clean_content.replace(f'queue', '').strip()
+    content = content.split(None, 1)[1]
+    print(content)
+    await queueMusic(content, message)
+  # END OF METHOD ----------------
+  
+  #CLEAR QUEUE---------------------------------------------
+  elif bot.user.mentioned_in(message) and message.content.startswith(
+      f'<@{bot.user.id}> clear queue'):
+    print("Event fired: clear queue")
+    queue.clear()
+    await message.channel.send("Queue cleared.")
+      
+  #LIST QUEUED MUSIC---------------------------------------------
+  elif bot.user.mentioned_in(message) and message.content.startswith(
+      f'<@{bot.user.id}> list queue'):
+    print("Event fired: list queued music")
+    if len(queue) == 0:
+      await message.channel.send("Queue is empty.")
+    else:
+      await message.channel.send("List of queued music:")
+      for i, file in enumerate(queue, start=1):
+        await message.channel.send(f"{i}. {file}")
+        
+  #SPEAK VIA BOT---------------------------------------------
+  elif bot.user.mentioned_in(message) and message.content.startswith(
+      f'<@{bot.user.id}> speak'):
+    print("Event fired: speak via bot")
+    import os
+    import pyttsx3
+    import asyncio
+    import random
+
+    # Extract the text to speak from the message
+    parts = message.content.split()
+    if len(parts) >= 3:
+    
+      text_to_speak = ' '.join(parts[2:])
+      # Join the voice channel of the user who sent the message
+      voice_channel = message.author.voice.channel
+      voice_client = await voice_channel.connect()
+      
+      # Initialize the TTS engine
+      engine = pyttsx3.init()
+      
+      # Set the speech rate
+      engine.setProperty('rate', 150)
+      
+      # Set the voice
+      voices = engine.getProperty('voices')
+      engine.setProperty('voice', voices[(random.randint(0,1))].id)
+
+      # Convert the text to speech
+      engine.save_to_file(text_to_speak, 'output.mp3')
+      engine.runAndWait()
+
+      # Play the saved audio file
+      voice_client.play(discord.FFmpegPCMAudio('output.mp3'))
+    
+      # Wait for the audio to finish playing
+      while voice_client.is_playing():
+        await asyncio.sleep(1)
+      
+      # Delete the audio file
+      os.remove('output.mp3')
+      
+      # Leave the voice channel
+      await voice_client.disconnect()
+      
+    else:
+        await message.channel.send(
+          "Invalid input. Please use '@bot speak <text>'.")
+  
+  #SET STATUS OF BOT---------------------------------------------
+  elif bot.user.mentioned_in(message) and message.content.startswith(
+      f'<@{bot.user.id}> status'):
+    print("Event fired: set status")
+    # Extract the status from the message
+    parts = message.content.split()
+    if len(parts) >= 3:
+      try:
+        status = ' '.join(parts[2:])
+        await bot.change_presence(activity=discord.Game(name=status))
+        await message.channel.send(f"Status set to '{status}'.")
+      except ValueError:
+        await message.channel.send(
+          "Invalid status. Please use '@bot status <status>'.")
+    else:
+      await message.channel.send(
+        "Invalid input. Please use '@bot status <status>'.")
   
   #MESSAGE A USER---------------------------------------------
   elif bot.user.mentioned_in(message) and message.content.startswith(
