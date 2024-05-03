@@ -262,9 +262,8 @@ async def on_message(message):
       f'<@{bot.user.id}> speak'):
     print("Event fired: speak via bot")
     import os
-    import pyttsx3
     import asyncio
-    import random
+    import subprocess
 
     # Extract the text to speak from the message
     parts = message.content.split()
@@ -275,29 +274,28 @@ async def on_message(message):
       voice_channel = message.author.voice.channel
       voice_client = await voice_channel.connect()
       
-      # Initialize the TTS engine
-      engine = pyttsx3.init()
-      
-      # Set the speech rate
-      engine.setProperty('rate', 150)
-      
-      # Set the voice
-      voices = engine.getProperty('voices')
-      engine.setProperty('voice', voices[(random.randint(0,1))].id)
+      # Import the necessary libraries
 
-      # Convert the text to speech
-      engine.save_to_file(text_to_speak, 'output.mp3')
-      engine.runAndWait()
+      # Set the command to convert text to speech using a Linux TTS engine
+      command = f"espeak-ng -w output.wav '{text_to_speak}'"
+
+      # Execute the command
+      subprocess.run(command, shell=True)
+
+      # Convert the WAV file to MP3
+      command = "ffmpeg -i output.wav -y output.mp3"
+      subprocess.run(command, shell=True)
 
       # Play the saved audio file
-      voice_client.play(discord.FFmpegPCMAudio('output.mp3'))
+      voice_client.play(discord.FFmpegPCMAudio('output.wav'))
     
       # Wait for the audio to finish playing
       while voice_client.is_playing():
         await asyncio.sleep(1)
-      
-      # Delete the audio file
-      os.remove('output.mp3')
+        
+      # Delete the temporary WAV file
+      command = "rm output.wav"
+      subprocess.run(command, shell=True)
       
       # Leave the voice channel
       await voice_client.disconnect()
