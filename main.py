@@ -6,13 +6,15 @@ from credentials import *
 global pickP
 pickP = 0
 
+# define the music directory
+music_dir = "C:/Users/cgrab/Music/Others"
+
 # HELPER FUNCTIONS---------------------------------------------
 
 # define function to play music from local file
 async def play_local_file(name, message):
   import os
   # Get the list of files in the music directory
-  music_dir = "C:/Users/cgrab/Music/Others"  # Replace with the actual path to your music directory
   files = os.listdir(music_dir)
 
   # Search for the file based on the given name
@@ -31,12 +33,9 @@ async def play_local_file(name, message):
 
 # Define a function to quit the current voice channel
 async def quit_voice_channel(bot):
-  voice_client = discord.utils.get(bot.guild.voice_clients, guild=bot.guild)
-  if voice_client:
-    await voice_client.disconnect()
-    await bot.channel.send("Left the voice channel.")
-  else:
-    await bot.channel.send("Not currently in a voice channel.")
+  if bot.voice_clients:
+    for vc in bot.voice_clients:
+      await vc.disconnect()
 
 # define function to call AI
 async def CallAI(text):
@@ -132,12 +131,39 @@ async def on_message(message):
     await play_local_file(content, message)
   # END OF METHOD ----------------
   
+  #LIST ALL FILES IN MUSIC DIRECTORY---------------------------------------------
+  elif bot.user.mentioned_in(message) and message.content.startswith(
+      f'<@{bot.user.id}> list music'):
+    print("Event fired: list music files")
+    import os
+    # Get the list of files in the music directory
+    files = os.listdir(music_dir)
+    await message.channel.send("List of music files:")
+    counter = 1
+    # Create a text file to store the list of music files
+    file_path = "music_files.txt"
+    file_content = ""
+    for file in files:
+      try:
+        file_content += f"{counter}. {file}\n"
+      except UnicodeEncodeError:
+        file_content += f"{counter}. {file.encode('utf-8').decode('utf-8', 'ignore')}\n"
+      counter += 1
+    with open(file_path, "w", encoding="utf-8") as file:
+      file.write(file_content)
+
+    # Send the text file
+    await message.channel.send(file=discord.File(file_path))
+
+    # Delete the text file after sending
+    os.remove(file_path)
+  
   #STOP PLAYING MUSIC---------------------------------------------
   elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> stop'):
+      f'<@{bot.user.id}> stop' or f'<@{bot.user.id}> quit' or f'<@{bot.user.id}> leave'):
     print("Event fired: stop playing music")
     await quit_voice_channel(bot)
-    await message.channel.send("Stopped playing music.")
+    await message.channel.send("Bot has left.")
   # END OF METHOD ----------------
   
   #MESSAGE A USER---------------------------------------------
