@@ -1,13 +1,16 @@
 import discord
 from discord.ext import commands
 from credentials import *
+# define the credentials file (credentials.py) with the following variables:
+# bot_token
+# geminiCookie
+# music_dir
+# See readme for more information
+
 
 # define bot token in credentials file
 global pickP
 pickP = 0
-
-# define the music directory
-music_dir = "C:/Users/cgrab/Music/Others"
 
 # HELPER FUNCTIONS---------------------------------------------
 
