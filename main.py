@@ -28,6 +28,24 @@ async def queueMusic(name, message):
       await message.channel.send(f"{file} added to the queue.")
       return
   await message.channel.send("File not found.")
+  
+# define function to download music from youtube
+async def download_audio(name, message):
+    from pytube import YouTube
+    from py_youtube import Search
+    videos = Search(name).videos()
+    yt_id = videos[0]['id']
+    # Download the audio from YouTube using the video ID
+    video_url = f"https://www.youtube.com/watch?v={yt_id}"
+    try:
+      yt = YouTube(video_url)
+      audio = yt.streams.filter(only_audio=True).first()
+      audio.download(output_path=music_dir)
+      await message.channel.send(f"Audio downloaded: {audio.title}")
+    except Exception as e:
+      await message.channel.send(f"Failed to download audio: {str(e)}")
+    
+  
 
 # define function to play music from local file
 async def play_local_file(name, message):
@@ -191,6 +209,16 @@ async def on_message(message):
     content = content.split(None, 1)[1]
     await play_local_file(content, message)
   # END OF METHOD ----------------
+  
+  #DOWNLOAD MUSIC FROM YOUTUBE---------------------------------------------
+  elif bot.user.mentioned_in(message) and message.content.startswith(
+      f'<@{bot.user.id}> download'):
+    print("Event fired: download music")
+    # Extract the word after the mention in the message content
+    content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
+    content = message.clean_content.replace(f'download', '').strip()
+    content = content.split(None, 1)[1]
+    await download_audio(content, message)
   
   #LIST ALL FILES IN MUSIC DIRECTORY---------------------------------------------
   elif bot.user.mentioned_in(message) and message.content.startswith(

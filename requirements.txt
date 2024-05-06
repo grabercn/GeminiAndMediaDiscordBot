@@ -2,3 +2,5 @@ discord
 pynacl
 pyttsx3
 asyncio
+pytube
+py_youtube
