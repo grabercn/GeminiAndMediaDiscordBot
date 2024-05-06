@@ -194,7 +194,20 @@ async def on_message(message):
   if bot.user.mentioned_in(message) and message.content.startswith(
       f'<@{bot.user.id}> help'):
     print("Event fired: help")
-    response = "Hello! I am a Discord bot that can respond to messages using AI. To get started, mention me in a message and I will respond to you. You can also change my personality by using the command '@bot personality <number>'. To message a user, use the command '@bot message <username> <message>'."
+    response = "Hello! I am a Discord bot that can respond to messages using AI. Here are the available commands:\n"
+    response += "- `@bot echo <message>`: Echoes the provided message.\n"
+    response += "- `@bot play <song>`: Plays the specified song from a local file.\n"
+    response += "- `@bot download <video_url>`: Downloads audio from the provided YouTube video URL or a Search Term\n"
+    response += "- `@bot list music`: Lists all the music files in the music directory.\n"
+    response += "- `@bot stop` or `@bot quit` or `@bot leave`: Stops playing music and leaves the voice channel.\n"
+    response += "- `@bot queue <song>`: Adds the specified song to the music queue.\n"
+    response += "- `@bot clear queue`: Clears the music queue.\n"
+    response += "- `@bot list queue`: Lists all the songs in the music queue.\n"
+    response += "- `@bot speak <text>`: Makes the bot speak the provided text in the voice channel.\n"
+    response += "- `@bot status <status>`: Sets the bot's status to the provided status.\n"
+    response += "- `@bot message <username> <message>`: Sends a message to the specified user.\n"
+    response += "- `@bot personality <number>`: Changes the bot's personality.\n"
+    response += "Feel free to try out these commands and have fun!"
     await message.channel.send(response)
   
   #ECHO---------------------------------------------
@@ -417,9 +430,9 @@ async def on_message(message):
 
     ## Call the AI to get the response
     try: 
-      response = CallAI(content)
-    except:
-      response = "AI is not avaliable. Please try again."
+      response = await CallAI(content)
+    except Exception as e:
+      response = "Unable to call AI: " + str(e)
 
     await message.channel.send(response)
   # END OF METHOD -------------------
