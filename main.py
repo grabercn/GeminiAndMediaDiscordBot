@@ -34,9 +34,17 @@ async def download_audio(name, message):
     from pytube import YouTube
     from py_youtube import Search
     videos = Search(name).videos()
-    yt_id = videos[0]['id']
-    # Download the audio from YouTube using the video ID
-    video_url = f"https://www.youtube.com/watch?v={yt_id}"
+    try:
+      yt_id = videos[0]['id']
+    except: 
+      await message.channel.send("Failed to find video.")
+      return
+    # Check if the name is a valid YouTube link
+    if "youtube.com" in name or "youtu.be" in name:
+      video_url = name
+    else:
+      # Download the audio from YouTube using the video ID
+      video_url = f"https://www.youtube.com/watch?v={yt_id}"
     try:
       yt = YouTube(video_url)
       audio = yt.streams.filter(only_audio=True).first()
