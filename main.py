@@ -14,6 +14,7 @@ pickP = 0
 global queue
 queue = []
 prefix = "!"
+admin = "chrismslist"
 
 # HELPER FUNCTIONS---------------------------------------------
 
@@ -91,30 +92,8 @@ async def play_local_file(name, message):
 
         while voice_client.is_playing():
           await asyncio.sleep(1)
-        queue.pop(0)
-      return
-  else:
-    # Search for the file based on the given name
-    for file in files:
-      if name.lower() in file.lower():
-        print("Playing file:", file)
-        await message.channel.send(f"Playing {file}...")
-        # Check if the bot is already connected to a voice channel
-        if bot.voice_clients:
-          voice_client = bot.voice_clients[0]
-        else:
-          # Connect to the voice channel
-          voice_channel = message.author.voice.channel
-          voice_client = await voice_channel.connect()
+        await voice_client.disconnect()
         
-        # Check if audio is already playing
-        if voice_client.is_playing():
-          # Stop the current audio
-          voice_client.stop()
-        
-        # Play the file using FFmpegPCMAudio
-        source = discord.FFmpegPCMAudio(os.path.join(music_dir, file))
-        voice_client.play(source)
         return  # Exit the function if the file is found
     # If no matching file is found
     await message.channel.send("File not found.")
@@ -307,7 +286,7 @@ async def on_message(message):
       for i, file in enumerate(queue, start=1):
         await message.channel.send(f"{i}. {file}")
     
-    #DELETE MUSIC FILE---------------------------------------------
+  #DELETE MUSIC FILE---------------------------------------------
   elif message.content.startswith(
       f'delete'):
     print("Event fired: delete music file")
@@ -321,7 +300,7 @@ async def on_message(message):
     # Search for the file based on the given name
     for file in files:
       if response.lower() in file.lower():
-        if message.author.name == "chrismslist":
+        if message.author.name == admin:
           os.remove(os.path.join(music_dir, file))
           await message.channel.send(f"{file} deleted.")
         else:
@@ -338,7 +317,7 @@ async def on_message(message):
     import asyncio
     import subprocess
 
-    # Extract the text to speak from the message
+    # Extract the text to speak from the message (linux only)
     parts = message.content.split()
     if len(parts) >= 3:
     
@@ -376,6 +355,55 @@ async def on_message(message):
     else:
         await message.channel.send(
           "Invalid input. Please use '@bot speak <text>'.")
+  
+  #QUOTE LAST USER AND ADD TO A QUOTES LIST (txt file)---------------------------------------------
+  elif message.content.startswith(
+      f'quote'):
+    
+    import os
+    #if message mentions list, list all quotes
+    if "list" in message.content:
+      print("Event fired: list quotes")
+      file_path = "quotes.txt"
+      if os.path.isfile(file_path) and os.stat(file_path).st_size == 0:
+        await message.channel.send("No quotes available.")
+      await message.channel.send(file=discord.File(file_path))
+      return
+    
+    #if message mentions delete, delete all quotes
+    if "delete" in message.content and message.author.name == admin:
+      print("Event fired: delete quotes")
+      with open("quotes.txt", "w") as file:
+        file.write("")
+      await message.channel.send("Quotes deleted.")
+      return
+    
+    print("Event fired: quote last user")
+    # Extract the quote from the message
+    parts = message.content.split()
+    if len(parts) == 1:
+      try:
+        # Get the last message sent in the server channel by any user
+        last_message = None
+        async for msg in message.channel.history(limit=2):
+          if msg.author != bot.user and not(msg.content.startswith(prefix)):
+            last_message = msg
+            break
+        if last_message:
+          # Format the quote with username
+          formatted_quote = f"\"{last_message.content}\" -{last_message.author.name}"
+          # Save the quote to a text file
+          with open("quotes.txt", "a") as file:
+            file.write(formatted_quote + "\n")
+          await message.channel.send("Quote added.")
+        else:
+          await message.channel.send("No previous message found.")
+      except ValueError:
+        await message.channel.send(
+          "Invalid quote. Please use '!quote'.")
+    else:
+      await message.channel.send(
+      "Invalid input. Please use '!quote'.")
   
   #SET STATUS OF BOT---------------------------------------------
   elif message.content.startswith(
