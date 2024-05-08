@@ -1,6 +1,6 @@
-# Bard Discord Bot
+# Gemini Discord Bot
 
-Bard Discord Bot is a Python-based Discord bot that can respond to messages using AI. It can play music from local files, download music from YouTube, and perform various other functions.
+Gemini Discord Bot is a Python-based Discord bot that can respond to messages using AI. It can play music from local files, download music from YouTube, and perform various other functions.
 
 ## Prerequisites
 
