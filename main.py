@@ -222,17 +222,22 @@ async def on_message(message):
     print("Event fired: help")
     response = "Hello! I am a Discord bot that can respond to messages using AI. Here are the available commands:\n"
     response += "- `!echo <message>`: Echoes the provided message.\n"
-    response += "- `!play <song>`: Plays the specified song from a local file.\n"
+    response += "- `!play <song>`: Plays the specified song from a local file, or download and play one.\n"
     response += "- `!download <video_url>`: Downloads audio from the provided YouTube video URL or a Search Term\n"
     response += "- `!list music`: Lists all the music files in the music directory.\n"
     response += "- `!stop` or `!quit` or `!leave`: Stops playing music and leaves the voice channel.\n"
     response += "- `!queue <song>`: Adds the specified song to the music queue.\n"
     response += "- `!clear queue`: Clears the music queue.\n"
     response += "- `!list queue`: Lists all the songs in the music queue.\n"
+    response += "- `!skip queue`: Skips the current song in the music queue.\n"
+    response += "- `!delete <file>`: Deletes the specified music file with either name, or order number. (Admin user only)\n"
     response += "- `!speak <text>`: Makes the bot speak the provided text in the voice channel.\n"
     response += "- `!status <status>`: Sets the bot's status to the provided status.\n"
     response += "- `!message <username> <message>`: Sends a message to the specified user.\n"
     response += "- `!personality <number>`: Changes the bot's personality.\n"
+    response += "- `!quote`: Quotes the last user's message and adds it to a quotes list.\n"
+    response += "- `!list quotes`: Lists all the quotes in the quotes list.\n"
+    response += "- `!delete quotes`: Deletes all the quotes in the quotes list. (Admin user only)\n"
     response += "Feel free to try out these commands and have fun!"
     await message.channel.send(response)
   
@@ -312,6 +317,16 @@ async def on_message(message):
     print("Event fired: clear queue")
     queue.clear()
     await message.channel.send("Queue cleared.")
+    
+  #SKIP QUEUE---------------------------------------------
+  elif message.content.startswith(
+      f'skip queue'):
+    print("Event fired: skip queue")
+    if len(queue) == 0:
+      await message.channel.send("Queue is empty.")
+    else:
+      queue.pop(0)
+      await message.channel.send("Skipped the current song.")
       
   #LIST QUEUED MUSIC---------------------------------------------
   elif message.content.startswith(
@@ -329,23 +344,35 @@ async def on_message(message):
       f'delete'):
     print("Event fired: delete music file")
     # Extract the word after the mention in the message content
-    response = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
     response = message.clean_content.replace(f'delete', '').strip()
-    response = response.split(None, 1)[1]
     import os
     # Get the list of files in the music directory
     files = os.listdir(music_dir)
-    # Search for the file based on the given name
-    for file in files:
-      if response.lower() in file.lower():
+    
+    
+    # Search for the file based on the given name or number
+    if response.isdigit():
+      file_index = int(response)
+      if file_index > 0 and file_index <= len(files):
+        file = files[file_index - 1]
         if message.author.name == admin:
           os.remove(os.path.join(music_dir, file))
           await message.channel.send(f"{file} deleted.")
         else:
           await message.channel.send("You do not have permission to delete files.")
-        return
-    # If no matching file is found
-    await message.channel.send("File not found.")
+      else:
+        await message.channel.send("Invalid file number.")
+    else:
+      for file in files:
+        if response.lower() in file.lower():
+          if message.author.name == admin:
+            os.remove(os.path.join(music_dir, file))
+            await message.channel.send(f"{file} deleted.")
+          else:
+            await message.channel.send("You do not have permission to delete files.")
+          return
+      # If no matching file is found
+      await message.channel.send("File not found.")
         
   #SPEAK VIA BOT---------------------------------------------
   elif message.content.startswith(
