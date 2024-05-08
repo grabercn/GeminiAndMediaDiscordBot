@@ -1,70 +1,53 @@
-# Discord AI Bot
+# Bard Discord Bot
 
-This is a Discord bot that utilizes AI to respond to messages and perform various actions, such as playing music from local files, sending messages to users, and changing its personality. The bot uses the (Bard which is now) Gemini model for generating responses.
+Bard Discord Bot is a Python-based Discord bot that can respond to messages using AI. It can play music from local files, download music from YouTube, and perform various other functions.
 
-## Setup Process
+## Prerequisites
 
-To set up and run this bot, follow these steps:
+Before running the bot, make sure you have the following:
 
-### 1. Clone the Repository
+- Python 3.x installed
+- Discord.py library installed (`pip install discord.py`)
+- PyTube library installed (`pip install pytube`)
+- FFmpeg installed and added to the system's PATH
+- __Check requirements.txt for further requirements!__
 
-Clone this repository to your local machine using the following command:
+## Getting Started
 
-```bash
-git clone https://github.com/grabercn/BardDiscordBot.git
-```
-
-### 2. Install Dependencies
-
-Navigate to the project directory and install the required dependencies using pip:
-
-```bash
-cd BardDiscordBot
-pip install -r requirements.txt
-```
-
-### 3. Set Up Credentials
-
-Create a `credentials.py` file in the project directory. This file should contain sensitive information such as your Discord bot token, Gemini API cookies, and the directory path for your music files. Here's an example of what the `credentials.py` file should look like:
-
-```python
-# credentials.py
-
-# Discord bot token
-bot_token = "your_discord_bot_token_here"
-
-# Gemini API cookies
-geminiCookie = "your_gemini_api_cookies_here"
-
-# Music directory path
-music_dir = "C:/Users/yourusername/Music"
-```
-
-Replace `"your_discord_bot_token_here"`, `"your_gemini_api_cookies_here"`, and `"C:/Users/yourusername/Music"` with your actual Discord bot token, Gemini API cookies, and the directory path where your music files are stored respectively.
-
-### 4. Run the Bot
-
-Run the bot by executing the main script (`bot.py`):
-
-```bash
-python main.py
-```
-
-The bot should now be up and running on your Discord server.
+1. Clone this repository to your local machine.
+2. Create a `credentials.py` file in the same directory as `main.py` and define the following variables:
+  - `bot_token`: Your Discord bot token
+  - `geminiCookie`: Your Gemini API cookie
+  - `music_dir`: The directory where your music files are stored
+3. Customize the bot's behavior by modifying the `personality` variable in the `CallAI` function.
+4. Run the bot by executing the `main.py` file (`python main.py`).
 
 ## Usage
 
-Once the bot is running, you can interact with it using various commands. Here are some examples:
+The bot responds to the following commands:
 
-- Mention the bot with `@bot help` to get a list of available commands.
-- Mention the bot with `@bot personality <number>` to change its personality.
-- Mention the bot with `@bot play <song_name>` to play a music file from the local directory.
-- Mention the bot with `@bot list music` to list all music files in the directory.
-- Mention the bot with `@bot stop` to stop playing music and disconnect from the voice channel.
-- Mention the bot with `@bot message <username> <message>` to send a message to a user.
+- `!echo <message>`: Echoes the provided message.
+- `!play <song>`: Plays the specified song from a local file or downloads and plays it.
+- `!download <video_url>`: Downloads audio from the provided YouTube video URL or search term.
+- `!list music`: Lists all the music files in the music directory.
+- `!stop` or `!quit` or `!leave`: Stops playing music and leaves the voice channel.
+- `!queue <song>`: Adds the specified song to the music queue.
+- `!clear queue`: Clears the music queue.
+- `!list queue`: Lists all the songs in the music queue.
+- `!skip queue`: Skips the current song in the music queue.
+- `!delete <file>`: Deletes the specified music file (admin user only).
+- `!speak <text>`: Makes the bot speak the provided text in the voice channel.
+- `!status <status>`: Sets the bot's status to the provided status.
+- `!message <username> <message>`: Sends a message to the specified user.
+- `!personality <number>`: Changes the bot's personality.
+- `!quote`: Quotes the last user's message and adds it to a quotes list.
+- `!list quotes`: Lists all the quotes in the quotes list.
+- `!delete quotes`: Deletes all the quotes in the quotes list (admin user only).
 
-For any further customization or troubleshooting, refer to the documentation or reach out to the repository owner.
+## Contributing
 
----
+Contributions are welcome! If you have any suggestions or improvements, feel free to open an issue or submit a pull request.
 
-Feel free to modify and expand upon this README as needed for your project! Let me know if you need further assistance.
+## License
+
+This project is licensed under the [MIT License](LICENSE).
