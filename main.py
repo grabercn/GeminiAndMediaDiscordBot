@@ -13,6 +13,7 @@ global pickP
 pickP = 0
 global queue
 queue = []
+prefix = "!"
 
 # HELPER FUNCTIONS---------------------------------------------
 
@@ -31,30 +32,28 @@ async def queueMusic(name, message):
   
 # define function to download music from youtube
 async def download_audio(name, message):
-    from pytube import YouTube
-    from py_youtube import Search
-    videos = Search(name).videos()
-    try:
-      yt_id = videos[0]['id']
-    except: 
-      await message.channel.send("Failed to find video.")
-      return
-    # Check if the name is a valid YouTube link
-    if "youtube.com" in name or "youtu.be" in name:
-      video_url = name
-    else:
-      # Download the audio from YouTube using the video ID
-      video_url = f"https://www.youtube.com/watch?v={yt_id}"
-    try:
-      yt = YouTube(video_url)
-      audio = yt.streams.filter(only_audio=True).first()
-      audio.download(output_path=music_dir)
-      await message.channel.send(f"Audio downloaded: {audio.title}")
-    except Exception as e:
-      await message.channel.send(f"Failed to download audio: {str(e)}")
+  from pytube import YouTube
+  from py_youtube import Search
+  videos = Search(name).videos()
+  try:
+    yt_id = videos[0]['id']
+  except: 
+    await message.channel.send("Failed to find video.")
+    return
+  # Check if the name is a valid YouTube link
+  if "youtube.com" in name or "youtu.be" in name:
+    video_url = name
+  else:
+    # Download the audio from YouTube using the video ID
+    video_url = f"https://www.youtube.com/watch?v={yt_id}"
+  try:
+    yt = YouTube(video_url)
+    audio = yt.streams.filter(only_audio=True).first()
+    audio.download(output_path=music_dir)
+    await message.channel.send(f"Audio downloaded: {audio.title}")
+  except Exception as e:
+    await message.channel.send(f"Failed to download audio: {str(e)}")
     
-  
-
 # define function to play music from local file
 async def play_local_file(name, message):
   import os
@@ -63,6 +62,7 @@ async def play_local_file(name, message):
 
   # Check if "queue" is in the message content
   if "queue" in message.content:
+    import asyncio
     # Check if the queue is empty
     global queue
     if queue.count == 0:
@@ -88,9 +88,11 @@ async def play_local_file(name, message):
         # Play the file using FFmpegPCMAudio
         source = discord.FFmpegPCMAudio(os.path.join(music_dir, file))
         voice_client.play(source)
-      
-      # Reset the queue
-      queue = []
+
+        while voice_client.is_playing():
+          await asyncio.sleep(1)
+        queue.pop(0)
+      return
   else:
     # Search for the file based on the given name
     for file in files:
@@ -166,10 +168,11 @@ BOT_TOKEN = bot_token
 
 # Define the intents your bot requires.
 intents = discord.Intents.default()
-intents.members = True  # This allows the bot to receive member-related events, like join/leave.
+intents.message_content = True
+intents.members = True
 
-# Create a bot instance with a command prefix (e.g., '!bot ')
-bot = commands.Bot(command_prefix='!bot ', intents=intents)
+# Create a bot instance with some parameters
+bot = discord.Client(intents=intents)
 
 # Event: Bot is ready and connected to Discord.
 @bot.event
@@ -183,67 +186,68 @@ async def on_ready():
 # WARNING: this event is order specific, use caution
 @bot.event
 async def on_message(message):
+  # Check if the message does not start with the command prefix
+  if not message.content.startswith(prefix):
+    return
+  else:
+    # Remove the command prefix from the message content
+    message.content = message.content.replace(prefix, '').strip()
+    # Assign the value of message.content to the variable 'content'
+    print("Message Received: " + message.content)
 
   # Don't respond to the bot's own messages
-  if message.author == bot.user:
+  if (message.author == bot.user):
     return
-  
-  print("Message Recieved:"+message.content)
-  
+    
   #HELP---------------------------------------------
-  if bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> help'):
+  if message.content.startswith(
+      f'help'):
     print("Event fired: help")
     response = "Hello! I am a Discord bot that can respond to messages using AI. Here are the available commands:\n"
-    response += "- `@bot echo <message>`: Echoes the provided message.\n"
-    response += "- `@bot play <song>`: Plays the specified song from a local file.\n"
-    response += "- `@bot download <video_url>`: Downloads audio from the provided YouTube video URL or a Search Term\n"
-    response += "- `@bot list music`: Lists all the music files in the music directory.\n"
-    response += "- `@bot stop` or `@bot quit` or `@bot leave`: Stops playing music and leaves the voice channel.\n"
-    response += "- `@bot queue <song>`: Adds the specified song to the music queue.\n"
-    response += "- `@bot clear queue`: Clears the music queue.\n"
-    response += "- `@bot list queue`: Lists all the songs in the music queue.\n"
-    response += "- `@bot speak <text>`: Makes the bot speak the provided text in the voice channel.\n"
-    response += "- `@bot status <status>`: Sets the bot's status to the provided status.\n"
-    response += "- `@bot message <username> <message>`: Sends a message to the specified user.\n"
-    response += "- `@bot personality <number>`: Changes the bot's personality.\n"
+    response += "- `!echo <message>`: Echoes the provided message.\n"
+    response += "- `!play <song>`: Plays the specified song from a local file.\n"
+    response += "- `!download <video_url>`: Downloads audio from the provided YouTube video URL or a Search Term\n"
+    response += "- `!list music`: Lists all the music files in the music directory.\n"
+    response += "- `!stop` or `!quit` or `!leave`: Stops playing music and leaves the voice channel.\n"
+    response += "- `!queue <song>`: Adds the specified song to the music queue.\n"
+    response += "- `!clear queue`: Clears the music queue.\n"
+    response += "- `!list queue`: Lists all the songs in the music queue.\n"
+    response += "- `!speak <text>`: Makes the bot speak the provided text in the voice channel.\n"
+    response += "- `!status <status>`: Sets the bot's status to the provided status.\n"
+    response += "- `!message <username> <message>`: Sends a message to the specified user.\n"
+    response += "- `!personality <number>`: Changes the bot's personality.\n"
     response += "Feel free to try out these commands and have fun!"
     await message.channel.send(response)
   
   #ECHO---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> echo'):
+  elif message.content.startswith(
+      f'echo'):
+    print("Event fired: echo")
     # Extract the word after the mention in the message content
-    content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
-    content = message.clean_content.replace(f'echo', '').strip()
-    content = content.split(None, 1)[1]
-    await message.channel.send(content)
+    response = message.clean_content.replace(f'echo', '').strip()
+    await message.channel.send(response)
   # END OF METHOD ----------------
   
   #PLAY MUSIC FROM LOCAL FILE---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> play'):
+  elif message.content.startswith(
+      f'play'):
     print("Event fired: play music")
     # Extract the word after the mention in the message content
-    content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
-    content = message.clean_content.replace(f'play', '').strip()
-    content = content.split(None, 1)[1]
-    await play_local_file(content, message)
+    response = message.clean_content.replace(f'play', '').strip()
+    await play_local_file(response, message)
   # END OF METHOD ----------------
   
   #DOWNLOAD MUSIC FROM YOUTUBE---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> download'):
+  elif message.content.startswith(
+      f'download'):
     print("Event fired: download music")
     # Extract the word after the mention in the message content
-    content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
-    content = message.clean_content.replace(f'download', '').strip()
-    content = content.split(None, 1)[1]
-    await download_audio(content, message)
+    response = message.clean_content.replace(f'download', '').strip()
+    await download_audio(response, message)
   
   #LIST ALL FILES IN MUSIC DIRECTORY---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> list music'):
+  elif message.content.startswith(
+      f'list music'):
     print("Event fired: list music files")
     import os
     # Get the list of files in the music directory
@@ -269,35 +273,32 @@ async def on_message(message):
     os.remove(file_path)
   
   #STOP PLAYING MUSIC---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> stop' or f'<@{bot.user.id}> quit' or f'<@{bot.user.id}> leave'):
+  elif message.content.startswith(
+      f'stop' or f'quit' or f'leave'):
     print("Event fired: stop playing music")
     await quit_voice_channel(bot)
     await message.channel.send("Bot has left.")
   # END OF METHOD ----------------
   
   #QUEUE MUSIC---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> queue'):
+  elif message.content.startswith(
+      f'queue'):
     print("Event fired: queue music")
     print(bot.user.id, bot.user.mention, bot.user.name, message.content)
-    content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
-    content = message.clean_content.replace(f'queue', '').strip()
-    content = content.split(None, 1)[1]
-    print(content)
-    await queueMusic(content, message)
+    response = message.clean_content.replace(f'queue', '').strip()
+    await queueMusic(response, message)
   # END OF METHOD ----------------
   
   #CLEAR QUEUE---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> clear queue'):
+  elif message.content.startswith(
+      f'clear queue'):
     print("Event fired: clear queue")
     queue.clear()
     await message.channel.send("Queue cleared.")
       
   #LIST QUEUED MUSIC---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> list queue'):
+  elif message.content.startswith(
+      f'list queue'):
     print("Event fired: list queued music")
     if len(queue) == 0:
       await message.channel.send("Queue is empty.")
@@ -305,10 +306,33 @@ async def on_message(message):
       await message.channel.send("List of queued music:")
       for i, file in enumerate(queue, start=1):
         await message.channel.send(f"{i}. {file}")
+    
+    #DELETE MUSIC FILE---------------------------------------------
+  elif message.content.startswith(
+      f'delete'):
+    print("Event fired: delete music file")
+    # Extract the word after the mention in the message content
+    response = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
+    response = message.clean_content.replace(f'delete', '').strip()
+    response = response.split(None, 1)[1]
+    import os
+    # Get the list of files in the music directory
+    files = os.listdir(music_dir)
+    # Search for the file based on the given name
+    for file in files:
+      if response.lower() in file.lower():
+        if message.author.name == "chrismslist":
+          os.remove(os.path.join(music_dir, file))
+          await message.channel.send(f"{file} deleted.")
+        else:
+          await message.channel.send("You do not have permission to delete files.")
+        return
+    # If no matching file is found
+    await message.channel.send("File not found.")
         
   #SPEAK VIA BOT---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> speak'):
+  elif message.content.startswith(
+      f'speak'):
     print("Event fired: speak via bot")
     import os
     import asyncio
@@ -318,7 +342,7 @@ async def on_message(message):
     parts = message.content.split()
     if len(parts) >= 3:
     
-      text_to_speak = ' '.join(parts[2:])
+      text_to_speak = ' '.join(parts[1:])
       # Join the voice channel of the user who sent the message
       voice_channel = message.author.voice.channel
       voice_client = await voice_channel.connect()
@@ -354,26 +378,26 @@ async def on_message(message):
           "Invalid input. Please use '@bot speak <text>'.")
   
   #SET STATUS OF BOT---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> status'):
+  elif message.content.startswith(
+      f'status'):
     print("Event fired: set status")
     # Extract the status from the message
     parts = message.content.split()
-    if len(parts) >= 3:
+    if len(parts) >= 2:
       try:
-        status = ' '.join(parts[2:])
+        status = ' '.join(parts[1:])
         await bot.change_presence(activity=discord.Game(name=status))
         await message.channel.send(f"Status set to '{status}'.")
       except ValueError:
         await message.channel.send(
-          "Invalid status. Please use '@bot status <status>'.")
+          "Invalid status. Please use '!status <status>'.")
     else:
       await message.channel.send(
-        "Invalid input. Please use '@bot status <status>'.")
+        "Invalid input. Please use '!status <status>'.")
   
   #MESSAGE A USER---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> message'):
+  elif message.content.startswith(
+      f'message'):
     print("Event fired: message a user")
     # Extract the username and message content from the message
     parts = message.content.split()
@@ -397,8 +421,8 @@ async def on_message(message):
   # END OF METHOD ----------------
 
   #CHANGE PERSONALITY---------------------------------------------
-  elif bot.user.mentioned_in(message) and message.content.startswith(
-      f'<@{bot.user.id}> personality'):
+  elif message.content.startswith(
+      f'personality'):
     print("Event fired: change personality")
     # Extract the personality number from the message
     parts = message.content.split()
@@ -415,30 +439,23 @@ async def on_message(message):
           )
       except ValueError:
         await message.channel.send(
-          "Invalid input. Please use '@bot personality <number>'.")
+          "Invalid input.")
     else:
       await message.channel.send(
-        "Invalid input. Please use '@bot personality <number>'.")
+        "Invalid input.")
   # END OF METHOD ----------------
 
   # RESPOND VIA BARD METHOD---------------------------------------------
-  elif bot.user.mentioned_in(message):
+  else:
     print("Event fired: respond via Bard")
-    # Extract the word after the mention in the message content
-    content = message.clean_content.replace(f'<@!{bot.user.id}>', '').strip()
-    content = content.split(None, 1)[1]
-
     ## Call the AI to get the response
     try: 
-      response = await CallAI(content)
+      response = await CallAI(response)
     except Exception as e:
       response = "Unable to call AI: " + str(e)
 
     await message.channel.send(response)
-  # END OF METHOD -------------------
-  
-  # Process bot commands (helps to avoid conflicts with other commands)
-  await bot.process_commands(message)
+  # END OF METHOD -------------------  
 
 # Run the bot with the specified token.
 bot.run(BOT_TOKEN)
