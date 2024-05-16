@@ -108,7 +108,12 @@ async def play_local_file(name, message):
           voice_client = bot.voice_clients[0]
         else:
           # Connect to the voice channel
-          voice_channel = message.author.voice.channel
+          try:
+            voice_channel = message.author.voice.channel
+          except:
+            await message.channel.send("You are not in a voice channel.")
+            return
+          
           voice_client = await voice_channel.connect()
         
         #send message to channel
