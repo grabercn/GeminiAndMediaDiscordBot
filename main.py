@@ -38,8 +38,8 @@ async def download_audio(name, message):
   videos = Search(name).videos()
   try:
     yt_id = videos[0]['id']
-  except: 
-    await message.channel.send("Failed to find video.")
+  except Exception as e: 
+    await message.channel.send("Failed to find video." + str(e))
     return
   # Check if the name is a valid YouTube link
   if "youtube.com" in name or "youtu.be" in name:
@@ -137,8 +137,15 @@ async def play_local_file(name, message):
       # If no matching file is found
       await message.channel.send("File not found. Downloading and playing...")
       # Download the audio from YouTube
+      count = 0
       name = await download_audio(name, message)
+      count += 1
       await play_local_file(name, message)
+      count += 1
+      
+      if count != 1:
+        await message.channel.send("Failed to play audio.")
+        return
       return
 
 # Define a function to quit the current voice channel
@@ -202,7 +209,6 @@ async def on_ready():
   print(f'{bot.user.name} has connected to Discord!')
   print(f'Bot ID: {bot.user.id}')
   print('------')
-
 
 # Event: Check if the bot is mentioned and respond with the same message.
 # WARNING: this event is order specific, use caution
