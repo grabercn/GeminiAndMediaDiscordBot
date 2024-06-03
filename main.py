@@ -101,51 +101,53 @@ async def play_local_file(name, message):
     # If no matching file is found
   else:
     print("Searching for file in...")
-    for file in files:
-      if name.lower() in file.lower():
-        # Check if the bot is already connected to a voice channel
-        if bot.voice_clients:
-          voice_client = bot.voice_clients[0]
-        else:
-          # Connect to the voice channel
-          try:
-            voice_channel = message.author.voice.channel
-          except:
-            await message.channel.send("You are not in a voice channel.")
-            return
+    try:
+      for file in files:
+        if name.lower() in file.lower():
+          # Check if the bot is already connected to a voice channel
+          if bot.voice_clients:
+            voice_client = bot.voice_clients[0]
+          else:
+            # Connect to the voice channel
+            try:
+              voice_channel = message.author.voice.channel
+            except:
+              await message.channel.send("You are not in a voice channel.")
+              return
+            
+            voice_client = await voice_channel.connect()
           
-          voice_client = await voice_channel.connect()
-        
-        #send message to channel
-        await message.channel.send(f"Playing {file}...")
-        
-        # Check if audio is already playing
-        if voice_client.is_playing():
-          # Stop the current audio
-          voice_client.stop()
-        
-        # Play the file using FFmpegPCMAudio
-        source = discord.FFmpegPCMAudio(os.path.join(music_dir, file))
-        voice_client.play(source)
-        
-        while voice_client.is_playing():
-          await asyncio.sleep(1)
-        await voice_client.disconnect()
-        
-        return  # Exit the function if the file is found
-    else:
-      # If no matching file is found
-      await message.channel.send("File not found. Downloading and playing...")
-      # Download the audio from YouTube
-      count = 0
-      name = await download_audio(name, message)
-      count += 1
-      await play_local_file(name, message)
-      count += 1
-      
-      if count != 1:
-        await message.channel.send("Failed to play audio.")
+          #send message to channel
+          await message.channel.send(f"Playing {file}...")
+          
+          # Check if audio is already playing
+          if voice_client.is_playing():
+            # Stop the current audio
+            voice_client.stop()
+          
+          # Play the file using FFmpegPCMAudio
+          source = discord.FFmpegPCMAudio(os.path.join(music_dir, file))
+          voice_client.play(source)
+          
+          while voice_client.is_playing():
+            await asyncio.sleep(1)
+          await voice_client.disconnect()
+          
+          return  # Exit the function if the file is found
+      else:
+        # If no matching file is found
+        await message.channel.send("File not found. Downloading and playing...")
+        # Download the audio from YouTube
+        count = 0
+        name = await download_audio(name, message)
+        count += 1
+        await play_local_file(name, message)
+        count += 1
+        if count > 1:
+          await message.channel.send("Downloaded and played audio.")
         return
+    except Exception as e:
+      await message.channel.send("Critical Error: Audio Failed to Play" + str(e))
       return
 
 # Define a function to quit the current voice channel
