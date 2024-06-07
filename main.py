@@ -136,7 +136,9 @@ async def play_local_file(name, message):
           return  # Exit the function if the file is found
       else:
         # If no matching file is found
-        await message.channel.send("File not found. Downloading and playing...")
+        await message.channel.send("File not found. Type **"+prefix+"download " + name + "** to download the audio from YouTube.")
+        
+        """
         # Download the audio from YouTube
         count = 0
         name = await download_audio(name, message)
@@ -145,6 +147,7 @@ async def play_local_file(name, message):
         count += 1
         if count > 1:
           await message.channel.send("Downloaded and played audio.")
+        """
         return
     except Exception as e:
       await message.channel.send("Critical Error: Audio Failed to Play" + str(e))
@@ -439,6 +442,7 @@ async def on_message(message):
       f'quote'):
     
     import os
+    # Check if the quotes file exists
     #if message mentions list, list all quotes
     if "list" in message.content:
       print("Event fired: list quotes")
